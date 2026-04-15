@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Sistema Programa Presupuestal</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;
+     background:#eef2f7;color:#1a2a3a;height:100vh;overflow:hidden}
+
+.app{display:flex;height:100vh}
+.sidebar{width:220px;flex-shrink:0;background:#1b3358;
+         color:#ccdcf0;display:flex;flex-direction:column;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:46px;background:#fff;border-bottom:1px solid #dde4ee;
+        display:flex;align-items:center;justify-content:space-between;
+        padding:0 18px;font-size:11.5px;color:#6b7e96;flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-right{display:flex;align-items:center;gap:6px}
+.content{flex:1;overflow-y:auto;padding:18px}
+
+.sidebar-logo{padding:14px 12px 10px;border-bottom:1px solid #26477a;flex-shrink:0}
+.sidebar-logo h2{font-size:12px;font-weight:700;color:#fff;line-height:1.3}
+.sidebar-logo p{font-size:9.5px;color:#90aacb;margin-top:2px;
+                text-transform:uppercase;letter-spacing:.05em}
+.sidebar-section{padding:10px 8px 4px;font-size:9px;color:#5a7a9e;
+                 text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.nav-item{display:flex;align-items:flex-start;gap:7px;
+          padding:7px 10px;margin:1px 4px;border-radius:5px;cursor:pointer;
+          color:#c0d4ec;font-size:11px;transition:background .15s;line-height:1.3}
+.nav-item:hover{background:#26477a}
+.nav-item.active{background:#26477a;color:#fff;font-weight:600}
+.nav-badge{margin-left:auto;background:#142a48;border-radius:8px;
+           font-size:9px;padding:1px 5px;color:#6a9fd8;flex-shrink:0}
+
+.mes-pill{background:#fff8e1;color:#7a5500;border:1px solid #ffe082;
+          border-radius:10px;padding:2px 9px;font-size:10.5px;font-weight:600}
+
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.card{background:#fff;border-radius:7px;padding:12px 14px;
+      border:1px solid #dde4ee}
+.card-label{font-size:9.5px;color:#6b7e96;font-weight:600;
+            text-transform:uppercase;letter-spacing:.04em}
+.card-value{font-size:21px;font-weight:700;color:#1b3358;margin-top:5px;line-height:1}
+.card-sub{font-size:10px;color:#8ea4bc;margin-top:3px}
+
+.section-header{display:flex;align-items:center;justify-content:space-between;
+                margin-bottom:8px}
+.section-title{font-size:12.5px;font-weight:700;color:#1b3358}
+
+.chart-card{background:#fff;border-radius:7px;border:1px solid #dde4ee;
+            padding:14px 16px;margin-bottom:16px}
+.chart-card h3{font-size:12px;font-weight:700;color:#1b3358;margin-bottom:10px}
+.chart-wrap{position:relative;height:170px}
+
+.table-card{background:#fff;border-radius:7px;border:1px solid #dde4ee;overflow:hidden}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{background:#f0f4fb;color:#5a7290;font-weight:600;padding:7px 7px;
+         text-align:right;white-space:nowrap;border-bottom:2px solid #d0dae8;
+         border-right:1px solid #d0dae8;position:sticky;top:0;z-index:2}
+thead th.left{text-align:left}
+thead th:last-child{border-right:none}
+thead th.mes-hl{background:#1b3358;color:#fff !important}
+
+tbody tr{border-bottom:1px solid #edf1f7}
+tbody tr:hover{background:#f5f8fc}
+tbody td{padding:5px 7px;text-align:right;color:#2a3f55;
+         border-right:1px solid #edf1f7;white-space:nowrap}
+tbody td.left{text-align:left;color:#4a6482;max-width:220px;
+              overflow:hidden;text-overflow:ellipsis}
+tbody td.code{color:#8ea4bc;font-family:monospace;font-size:10px}
+tbody td:last-child{border-right:none}
+tbody td.meta-col{background:#eef5ff}
+tbody td.mes-hl{background:#fffde7}
+
+td.verde{background:#d4edda;color:#155724;font-weight:600}
+td.amarillo{background:#fff3cd;color:#856404}
+td.rojo{background:#f8d7da;color:#721c24}
+td.mes-hl.verde{background:#a5d6a7 !important}
+td.mes-hl.amarillo{background:#ffe082 !important}
+
+.row-grupo td{background:#e8eef8;color:#1b3358;font-weight:700;
+              padding:7px 10px;cursor:pointer;user-select:none;font-size:11.5px}
+.row-grupo:hover td{background:#dde6f5}
+.chevron{display:inline-block;transition:transform .2s;
+         margin-right:5px;font-size:9px}
+.chevron.open{transform:rotate(90deg)}
+
+.row-total td{background:#1b3358;color:#fff;font-weight:700;
+              padding:7px 7px;border-right:1px solid #26477a}
+.row-total td.left{text-align:left}
+.row-total td:last-child{border-right:none}
+
+.badge{display:inline-block;padding:2px 6px;border-radius:20px;
+       font-size:10px;font-weight:700}
+.badge.ok{background:#d4edda;color:#155724}
+.badge.mid{background:#fff3cd;color:#856404}
+.badge.low{background:#f8d7da;color:#721c24}
+
+.btn{display:inline-flex;align-items:center;gap:5px;
+     padding:5px 12px;border-radius:6px;font-size:11px;
+     font-weight:600;cursor:pointer;border:1px solid #d0dae8;
+     background:#fff;color:#1b3358;transition:background .15s}
+.btn:hover{background:#eef2f7}
+.btn-pdf{background:#1b3358;color:#fff;border-color:#1b3358}
+.btn-pdf:hover{background:#26477a;border-color:#26477a}
+
+.loading{display:flex;flex-direction:column;align-items:center;
+         justify-content:center;height:200px;color:#6b7e96;gap:12px}
+.spinner{width:28px;height:28px;border:3px solid #dde4ee;
+         border-top-color:#1b3358;border-radius:50%;
+         animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{background:#fff0f0;border:1px solid #f5c6cb;border-radius:7px;
+           padding:12px 16px;color:#721c24;margin-bottom:14px;font-size:12px}
+
+/* ═══════════════════════════════════════════════
+   PRINT — bloque completamente reescrito
+   ═══════════════════════════════════════════════ */
+@media print {
+  /* Ocultar elementos de navegación e interacción */
+  .sidebar,
+  .topbar,
+  .btn,
+  .section-header .btn { display: none !important; }
+
+  /* Layout de impresión */
+  html, body { height: auto !important; overflow: visible !important; }
+  .app { display: block !important; height: auto !important; }
+  .main { display: block !important; overflow: visible !important; }
+  .content { overflow: visible !important; padding: 8px !important; }
+
+  /* Forzar salto de página entre secciones grandes */
+  .chart-card { page-break-after: always; }
+
+  /* Evitar cortes en filas de tabla */
+  tbody tr { page-break-inside: avoid; }
+
+  /* Cards en impresión */
+  .cards { grid-template-columns: repeat(4, 1fr) !important; margin-bottom: 10px; }
+  .card { border: 1px solid #ccc !important; }
+
+  /* Tabla */
+  table { font-size: 8.5px !important; }
+  .table-wrap { overflow: visible !important; }
+
+  /* Colores forzados para impresión */
+  thead th {
+    background: #1b3358 !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  thead th.mes-hl {
+    background: #f59e0b !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .row-grupo td {
+    background: #dde6f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .row-total td {
+    background: #1b3358 !important;
+    color: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  td.verde {
+    background: #c8e6c9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  td.amarillo {
+    background: #fff9c4 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  td.rojo {
+    background: #ffcdd2 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  td.meta-col {
+    background: #e3f2fd !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  td.mes-hl {
+    background: #fff9c4 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Ocultar canvas (Chart.js no imprime bien) y mostrar tabla print */
+  .chart-wrap canvas { display: none !important; }
+  #print-chart-table { display: table !important; }
+
+  body { background: #fff !important; }
+  .table-card, .chart-card, .card { box-shadow: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h2>Sistema Programa<br>Presupuestal</h2>
+    <p>Hospital San José</p>
+  </div>
+  <div class="sidebar-section">Programas (PP)</div>
+  <div id="sidebar-nav">
+    <div class="nav-item">
+      <span class="spinner" style="width:13px;height:13px;border-width:2px"></span>
+      &nbsp;Cargando...
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span id="topbar-periodo">—</span>
+      <span id="topbar-mes-pill" class="mes-pill" style="display:none"></span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-pdf" onclick="imprimirPagina()">&#128438; Exportar PDF</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="error-box" class="error-msg" style="display:none"></div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <span>Cargando programas desde Google Sheets...</span>
+    </div>
+
+    <div id="main-content" style="display:none">
+      <div style="margin-bottom:12px">
+        <div style="font-size:9.5px;color:#6b7e96;font-weight:600;
+                    text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">
+          Programa Presupuestal
+        </div>
+        <div id="titulo-programa" style="font-size:14px;font-weight:700;
+             color:#1b3358;line-height:1.4;max-width:860px"></div>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label">Meta programada</div>
+          <div class="card-value" id="card-meta-prog">—</div>
+          <div class="card-sub">Unidades totales</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Ejecutado</div>
+          <div class="card-value" id="card-ejecutado">—</div>
+          <div class="card-sub">Total meta física</div>
+        </div>
+        <div class="card">
+          <div class="card-label">% Avance</div>
+          <div class="card-value" id="card-avance">—</div>
+          <div class="card-sub">Progreso acumulado</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Mes actual</div>
+          <div class="card-value" id="card-mes-ejecutado">—</div>
+          <div class="card-sub" id="card-mes-label">Ejecución del mes</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Avance % por producto</h3>
+        <div class="chart-wrap">
+          <canvas id="grafico-avance"></canvas>
+        </div>
+        <!-- Tabla alternativa solo visible al imprimir -->
+        <table id="print-chart-table" style="display:none;font-size:10px;margin-top:8px;width:100%">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:4px 6px;background:#1b3358;color:#fff">Producto</th>
+              <th style="text-align:right;padding:4px 6px;background:#1b3358;color:#fff">Meta Prog.</th>
+              <th style="text-align:right;padding:4px 6px;background:#1b3358;color:#fff">Ejecutado</th>
+              <th style="text-align:right;padding:4px 6px;background:#1b3358;color:#fff">Avance %</th>
+            </tr>
+          </thead>
+          <tbody id="print-chart-body"></tbody>
+        </table>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Metas físicas — detalle por actividad</div>
+        <span id="mes-actual-label" style="font-size:10.5px;color:#8ea4bc;display:none"></span>
+      </div>
+
+      <div class="table-card">
+        <div class="table-wrap">
+          <table id="tabla-metas">
+            <thead id="tabla-thead"></thead>
+            <tbody id="tabla-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+var MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                    'Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
+var MESES_CORTO  = ['ENE','FEB','MAR','ABR','MAY','JUN',
+                    'JUL','AGO','SET','OCT','NOV','DIC'];
+var MES_ACTUAL   = new Date().getMonth();
+var ANO_ACTUAL   = new Date().getFullYear();
+
+var programas     = [];
+var hojaActual    = '';
+var expandido     = {};
+var chartInstance = null;
+var datosActuales = null; // guardamos para usar en beforeprint
+
+function fmt(n){ return n===0?'0':Number(n).toLocaleString('es-PE'); }
+function fmtPct(n){ return Number(n).toFixed(2)+'%'; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                                     .replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── beforeprint: expandir todo y restaurar después ────────────
+window.addEventListener('beforeprint', function(){
+  Object.keys(expandido).forEach(function(cod){
+    if(!expandido[cod]){ toggleGrupo(cod); }
+  });
+});
+window.addEventListener('afterprint', function(){
+  // no restauramos para no confundir al usuario; queda expandido
+});
+
+// ── 1. Cargar programas ───────────────────────────────────────
+google.script.run
+  .withSuccessHandler(onProgramasOk)
+  .withFailureHandler(onErrorGlobal)
+  .getProgramas();
+
+function onProgramasOk(lista){
+  programas = lista||[];
+  if(!programas.length){
+    mostrarError('No se encontraron hojas que comiencen con "PP " en este Google Sheet.');
+    return;
+  }
+
+  var nav = document.getElementById('sidebar-nav');
+  nav.innerHTML = '';
+  programas.forEach(function(p){
+    var div = document.createElement('div');
+    div.className = 'nav-item';
+    div.dataset.hoja = p.hoja;
+    div.innerHTML =
+      '<span style="font-size:9px">&#9632;</span>' +
+      '<span>' + esc(p.codigo) + '</span>' +
+      '<span class="nav-badge">' + esc(p.id) + '</span>';
+    div.addEventListener('click', function(){ cargarPrograma(p.hoja); });
+    nav.appendChild(div);
+  });
+
+  var pill = document.getElementById('topbar-mes-pill');
+  pill.style.display = 'inline-block';
+  pill.textContent = MESES_NOMBRE[MES_ACTUAL] + ' ' + ANO_ACTUAL;
+
+  cargarPrograma(programas[0].hoja);
+}
+
+// ── 2. Cargar datos ───────────────────────────────────────────
+function cargarPrograma(hoja){
+  hojaActual = hoja;
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    el.classList.toggle('active', el.dataset.hoja === hoja);
+  });
+  document.getElementById('main-content').style.display = 'none';
+  var ld = document.getElementById('loading');
+  ld.style.display = 'flex';
+  ld.querySelector('span').textContent = 'Cargando ' + hoja + '...';
+
+  google.script.run
+    .withSuccessHandler(onDatosOk)
+    .withFailureHandler(onErrorGlobal)
+    .getDatosHoja(hoja);
+}
+
+// ── 3. Renderizar ─────────────────────────────────────────────
+function onDatosOk(datos){
+  document.getElementById('loading').style.display = 'none';
+  if(datos.error){ mostrarError(datos.error); return; }
+
+  datosActuales = datos;
+  var metas   = datos.metas   || [];
+  var totales = datos.totales || null;
+
+  document.getElementById('topbar-periodo').textContent =
+    datos.hoja + '  ·  Periodo ' + ANO_ACTUAL;
+  document.getElementById('titulo-programa').textContent = datos.titulo;
+
+  if(totales){
+    document.getElementById('card-meta-prog').textContent  = fmt(totales.metaProg);
+    document.getElementById('card-ejecutado').textContent  = fmt(totales.totalMeta);
+    var pct = totales.avancePct;
+    var avEl = document.getElementById('card-avance');
+    avEl.textContent  = fmtPct(pct);
+    avEl.style.color  = pct >= 50 ? '#155724' : '#721c24';
+    document.getElementById('card-mes-ejecutado').textContent = fmt(totales.meses[MES_ACTUAL]);
+    document.getElementById('card-mes-label').textContent =
+      'Ejecutado en ' + MESES_NOMBRE[MES_ACTUAL];
+  }
+
+  var mesLabel = document.getElementById('mes-actual-label');
+  mesLabel.style.display = 'inline-block';
+  mesLabel.textContent = MESES_NOMBRE[MES_ACTUAL] + ' resaltado';
+
+  renderGrafico(metas);
+  renderTabla(metas, totales);
+  document.getElementById('main-content').style.display = 'block';
+}
+
+// ── 4. Gráfico ────────────────────────────────────────────────
+function renderGrafico(metas){
+  var grupos = {}, orden = [];
+  metas.forEach(function(m){
+    var cod = m.codigoProducto;
+    if(!grupos[cod]){
+      grupos[cod] = { nombre: cod, sumaProg: 0, sumaTotal: 0 };
+      orden.push(cod);
+    }
+    grupos[cod].sumaProg  += m.metaProg;
+    grupos[cod].sumaTotal += m.totalMeta;
+  });
+
+  var etiquetas = [], valores = [], colores = [];
+  // Para tabla de impresión
+  var printBody = document.getElementById('print-chart-body');
+  printBody.innerHTML = '';
+
+  orden.forEach(function(cod){
+    var g   = grupos[cod];
+    var pct = g.sumaProg > 0 ? (g.sumaTotal / g.sumaProg) * 100 : 0;
+    pct = Math.round(pct * 100) / 100;
+    etiquetas.push(cod);
+    valores.push(pct);
+    colores.push(pct >= 100 ? '#2d6a4f' : pct >= 50 ? '#e9c46a' : '#e63946');
+
+    // Fila para tabla de impresión
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td style="padding:3px 6px;border-bottom:1px solid #ddd">' + esc(cod) + '</td>' +
+                   '<td style="text-align:right;padding:3px 6px;border-bottom:1px solid #ddd">' + fmt(g.sumaProg) + '</td>' +
+                   '<td style="text-align:right;padding:3px 6px;border-bottom:1px solid #ddd">' + fmt(g.sumaTotal) + '</td>' +
+                   '<td style="text-align:right;padding:3px 6px;border-bottom:1px solid #ddd">' + fmtPct(pct) + '</td>';
+    printBody.appendChild(tr);
+  });
+
+  if(chartInstance){ chartInstance.destroy(); }
+  var ctx = document.getElementById('grafico-avance').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: etiquetas,
+      datasets: [{
+        label: 'Avance %',
+        data: valores,
+        backgroundColor: colores,
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(c){ return ' ' + c.parsed.x.toFixed(2) + '%'; }
+          }
+        }
+      },
+      scales: {
+        x: {
+          min: 0,
+          max: Math.max(100, Math.max.apply(null, valores.length ? valores : [100]) * 1.1),
+          ticks: { callback: function(v){ return v+'%'; }, font: { size: 10 } },
+          grid: { color: '#edf1f7' }
+        },
+        y: { ticks: { font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── 5. Tabla ──────────────────────────────────────────────────
+function renderTabla(metas, totales){
+  var thead = document.getElementById('tabla-thead');
+  var ths = '<tr>' +
+    '<th class="left" style="min-width:140px">Producto</th>' +
+    '<th class="left" style="min-width:65px">Sub Prod.</th>' +
+    '<th class="left" style="min-width:230px">Actividad</th>' +
+    '<th style="min-width:65px">U. Medida</th>' +
+    '<th class="meta-col" style="min-width:65px">M.Reprog.</th>' +
+    '<th class="meta-col" style="min-width:65px">M.Prog.</th>';
+  for(var i=0;i<12;i++){
+    var esActual = i===MES_ACTUAL;
+    ths += '<th style="min-width:42px"' +
+           (esActual?' class="mes-hl"':'') + '>' +
+           MESES_CORTO[i] + (esActual?' &#9660;':'') + '</th>';
+  }
+  ths += '<th style="min-width:65px;font-weight:700">T.Meta</th>' +
+         '<th style="min-width:58px;font-weight:700">Avance</th></tr>';
+  thead.innerHTML = ths;
+
+  var grupos = [], mapa = {};
+  metas.forEach(function(m){
+    if(!mapa[m.codigoProducto]){
+      mapa[m.codigoProducto] = { nombre: m.producto, filas: [] };
+      grupos.push(m.codigoProducto);
+    }
+    mapa[m.codigoProducto].filas.push(m);
+  });
+
+  if(grupos.length>0) expandido[grupos[0]] = true;
+
+  var tbody = document.getElementById('tabla-body');
+  tbody.innerHTML = '';
+
+  grupos.forEach(function(cod){
+    var g       = mapa[cod];
+    var abierto = !!expandido[cod];
+
+    var trG = document.createElement('tr');
+    trG.className = 'row-grupo';
+    trG.dataset.grupo = cod;
+    trG.innerHTML = '<td colspan="20"><span class="chevron'+(abierto?' open':'')+'">&#9658;</span>' +
+                    esc(g.nombre) + '</td>';
+    trG.addEventListener('click', function(){ toggleGrupo(cod); });
+    tbody.appendChild(trG);
+
+    g.filas.forEach(function(m){
+      var tr = document.createElement('tr');
+      tr.className = 'row-dato';
+      tr.dataset.grupo = cod;
+      if(!abierto) tr.style.display = 'none';
+
+      // FIX: calcular avancePct desde frontend para no depender de fórmulas del sheet
+      var avancePct = m.metaProg > 0
+        ? Math.round((m.totalMeta / m.metaProg) * 10000) / 100
+        : 0;
+
+      var celdas = '';
+      for(var i=0;i<12;i++){
+        var v   = m.meses[i];
+        var cls = claseCelda(v, m.metaProg);
+        var esA = i===MES_ACTUAL;
+        var allCls = [cls, esA?'mes-hl':''].filter(Boolean).join(' ');
+        celdas += '<td'+(allCls?' class="'+allCls+'"':'')+'>' +
+                  (v!==0?fmt(v):'') + '</td>';
+      }
+
+      var avCls = avancePct>=100?'ok':avancePct>=50?'mid':'low';
+      tr.innerHTML =
+        '<td class="left code">' + esc(m.codigoProducto) + '</td>' +
+        '<td class="left">'     + esc(m.subProducto)     + '</td>' +
+        '<td class="left" title="'+esc(m.actividad)+'">' + esc(m.actividad) + '</td>' +
+        '<td class="left">'     + esc(m.unidadMedida)    + '</td>' +
+        '<td class="meta-col">' + fmt(m.metaReprog)       + '</td>' +
+        '<td class="meta-col">' + fmt(m.metaProg)         + '</td>' +
+        celdas +
+        '<td><strong>' + fmt(m.totalMeta) + '</strong></td>' +
+        '<td><span class="badge '+avCls+'">'+fmtPct(avancePct)+'</span></td>';
+      tbody.appendChild(tr);
+    });
+  });
+
+  if(totales){
+    var trT = document.createElement('tr');
+    trT.className = 'row-total';
+    var cesMes = '';
+    for(var j=0;j<12;j++) cesMes += '<td>'+fmt(totales.meses[j])+'</td>';
+    trT.innerHTML =
+      '<td class="left" colspan="4">TOTALES</td>' +
+      '<td>'+fmt(totales.metaReprog)+'</td>' +
+      '<td>'+fmt(totales.metaProg)+'</td>' +
+      cesMes +
+      '<td>'+fmt(totales.totalMeta)+'</td>' +
+      '<td>'+fmtPct(totales.avancePct)+'</td>';
+    tbody.appendChild(trT);
+  }
+}
+
+function claseCelda(val, metaProg){
+  if(val===0) return '';
+  var mm = metaProg>0 ? metaProg/12 : 0;
+  if(mm===0) return val>0?'verde':'';
+  var p = (val/mm)*100;
+  return p>=100?'verde':p>=50?'amarillo':'rojo';
+}
+
+function toggleGrupo(cod){
+  expandido[cod] = !expandido[cod];
+  var ab = expandido[cod];
+  var trG = document.querySelector('tr.row-grupo[data-grupo="'+cod+'"]');
+  if(trG){
+    var ch = trG.querySelector('.chevron');
+    if(ch){ if(ab) ch.classList.add('open'); else ch.classList.remove('open'); }
+  }
+  document.querySelectorAll('tr.row-dato[data-grupo="'+cod+'"]').forEach(function(tr){
+    tr.style.display = ab?'':'none';
+  });
+}
+
+// ── 6. Imprimir / PDF ─────────────────────────────────────────
+function imprimirPagina(){
+  // Expandir todos los grupos antes de imprimir
+  Object.keys(expandido).forEach(function(cod){
+    if(!expandido[cod]) toggleGrupo(cod);
+  });
+  // También expandir grupos que nunca se abrieron
+  document.querySelectorAll('tr.row-dato').forEach(function(tr){
+    tr.style.display = '';
+  });
+  setTimeout(function(){ window.print(); }, 150);
+}
+
+function mostrarError(msg){
+  document.getElementById('loading').style.display = 'none';
+  var b = document.getElementById('error-box');
+  b.textContent = msg;
+  b.style.display = 'block';
+}
+function onErrorGlobal(err){
+  mostrarError('Error del servidor: '+(err.message||String(err)));
+}
+</script>
+</body>
+</html>
