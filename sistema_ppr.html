@@ -279,33 +279,87 @@ body.dark .sem-pct.rojo{color:#f87171}
 
 /* ── Print ─────────────────────────────────────────────────── */
 @media print {
-  .sidebar,.topbar,.btn,.section-header .btn{display:none !important}
-  html,body{height:auto !important;overflow:visible !important}
-  .app{display:block !important;height:auto !important}
-  .main{display:block !important;overflow:visible !important}
-  .content{overflow:visible !important;padding:8px !important}
-  .chart-card{page-break-after:always}
-  tbody tr{page-break-inside:avoid}
-  .cards{grid-template-columns:repeat(4,1fr) !important;margin-bottom:10px}
-  .card{border:1px solid #ccc !important}
-  table{font-size:8.5px !important}
-  .table-wrap{overflow:visible !important}
-  thead th{background:#1b3358 !important;color:#fff !important;
-           -webkit-print-color-adjust:exact;print-color-adjust:exact}
-  thead th.mes-hl{background:#f59e0b !important;color:#000 !important;
-                  -webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .row-grupo td{background:#dde6f5 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .row-total td{background:#1b3358 !important;color:#fff !important;
-                -webkit-print-color-adjust:exact;print-color-adjust:exact}
-  td.verde{background:#c8e6c9 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  td.amarillo{background:#fff9c4 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  td.rojo{background:#ffcdd2 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  td.meta-col{background:#e3f2fd !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  td.mes-hl{background:#fff9c4 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .chart-wrap canvas{display:none !important}
-  #print-chart-table{display:table !important}
-  body{background:#fff !important}
-  .table-card,.chart-card,.card{box-shadow:none !important}
+  /* ── Página horizontal A4 ── */
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+
+  /* ── Ocultar UI de navegación ── */
+  .sidebar, .topbar, .btn, .section-header .btn,
+  #btn-semaforo, #semaforo-view { display: none !important; }
+
+  /* ── Cabecera de impresión ── */
+  #print-header { display: block !important; }
+
+  /* ── Layout ── */
+  html, body { height: auto !important; overflow: visible !important;
+               background: #fff !important; color: #000 !important; }
+  body.dark { background: #fff !important; color: #000 !important; }
+  .app  { display: block !important; height: auto !important; }
+  .main { display: block !important; overflow: visible !important; }
+  .content { overflow: visible !important; padding: 4px 0 !important; }
+
+  /* ── Salto de página entre secciones ── */
+  .chart-card { page-break-after: always; break-after: always; }
+  tbody tr    { page-break-inside: avoid; break-inside: avoid; }
+
+  /* ── KPI cards ── */
+  .cards { grid-template-columns: repeat(4,1fr) !important; margin-bottom: 8px; }
+  .card  { border: 1px solid #ccc !important; background: #fff !important;
+           box-shadow: none !important; }
+  .card-label { color: #444 !important; }
+  .card-value { color: #1b3358 !important; }
+  .card-sub   { color: #666 !important; }
+
+  /* ── Tabla compacta para papel A4 landscape ── */
+  table   { font-size: 7px !important; width: 100% !important;
+            table-layout: fixed !important; }
+  .table-wrap { overflow: visible !important; }
+
+  /* Columnas de texto: anchos fijos para que quepan */
+  thead th, tbody td { padding: 3px 3px !important; white-space: nowrap !important; }
+  thead th.left, tbody td.left { white-space: normal !important;
+                                  overflow: hidden !important;
+                                  text-overflow: ellipsis !important; }
+
+  /* Quitar min-width definido inline */
+  thead th[style] { min-width: 0 !important; }
+
+  /* Cabecera y colores de tabla */
+  thead th { background: #1b3358 !important; color: #fff !important;
+             -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  thead th.mes-hl { background: #f59e0b !important; color: #000 !important;
+                    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .row-grupo td { background: #dde6f5 !important; color: #1b3358 !important;
+                  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .row-total td { background: #1b3358 !important; color: #fff !important;
+                  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.verde    { background: #c8e6c9 !important; color: #155724 !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.amarillo { background: #fff9c4 !important; color: #856404 !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.rojo     { background: #ffcdd2 !important; color: #721c24 !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.meta-col { background: #e3f2fd !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.mes-hl   { background: #fff9c4 !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.mes-hl.verde   { background: #a5d6a7 !important;
+                      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.mes-hl.amarillo{ background: #ffe082 !important;
+                      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* Reemplazar canvas con tabla imprimible */
+  .chart-wrap canvas    { display: none !important; }
+  #print-chart-table    { display: table !important; }
+
+  /* Ocultar badges, reemplazar por texto */
+  .badge.ok  { background: #c8e6c9 !important; color: #155724 !important;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .badge.mid { background: #fff9c4 !important; color: #856404 !important;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .badge.low { background: #ffcdd2 !important; color: #721c24 !important;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .table-card, .chart-card, .card { box-shadow: none !important; }
 }
 </style>
 </head>
@@ -413,9 +467,27 @@ body.dark .sem-pct.rojo{color:#f87171}
         <span id="mes-actual-label" style="font-size:10.5px;color:var(--color-top);display:none"></span>
       </div>
 
+      <!-- Cabecera visible solo al imprimir -->
+      <div id="print-header" style="display:none;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;
+                    border-bottom:2px solid #1b3358;padding-bottom:6px;margin-bottom:8px">
+          <div>
+            <div style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.05em">
+              Hospital San José · Sistema Programa Presupuestal
+            </div>
+            <div id="ph-titulo" style="font-size:13px;font-weight:700;color:#1b3358"></div>
+          </div>
+          <div style="text-align:right;font-size:9px;color:#666">
+            <div id="ph-periodo"></div>
+            <div id="ph-fecha"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="table-card">
         <div class="table-wrap">
           <table id="tabla-metas">
+            <colgroup id="tabla-cols"></colgroup>
             <thead id="tabla-thead"></thead>
             <tbody id="tabla-body"></tbody>
           </table>
@@ -829,6 +901,20 @@ function renderGrafico(metas){
 // ── 5. Tabla ──────────────────────────────────────────────────
 function renderTabla(metas, totales){
   var thead = document.getElementById('tabla-thead');
+
+  // Colgroup para anchos en impresión
+  var cg = document.getElementById('tabla-cols');
+  var cols =
+    '<col style="width:8%">'  +   // Producto
+    '<col style="width:5%">'  +   // Sub Prod
+    '<col style="width:16%">' +   // Actividad
+    '<col style="width:5%">'  +   // U.Medida
+    '<col style="width:4%">'  +   // M.Reprog
+    '<col style="width:4%">';     // M.Prog
+  for(var c=0;c<12;c++) cols += '<col style="width:3.5%">';
+  cols += '<col style="width:4%">' + '<col style="width:4%">';
+  cg.innerHTML = cols;
+
   var ths = '<tr>' +
     '<th class="left" style="min-width:140px">Producto</th>' +
     '<th class="left" style="min-width:65px">Sub Prod.</th>' +
@@ -949,6 +1035,18 @@ function toggleGrupo(cod){
 
 // ── 6. Imprimir / PDF ─────────────────────────────────────────
 function imprimirPagina(){
+  // Llenar encabezado de impresión
+  var tituloEl = document.getElementById('titulo-programa');
+  document.getElementById('ph-titulo').textContent =
+    tituloEl ? tituloEl.textContent : (hojaActual || '');
+  document.getElementById('ph-periodo').textContent =
+    hojaActual + ' · Periodo ' + ANO_ACTUAL;
+  var ahora = new Date();
+  document.getElementById('ph-fecha').textContent =
+    'Generado: ' + ahora.toLocaleDateString('es-PE') + ' ' +
+    ahora.toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
+
+  // Expandir todos los grupos
   Object.keys(expandido).forEach(function(cod){
     if(!expandido[cod]) toggleGrupo(cod);
   });
