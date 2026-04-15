@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Sistema Programa Presupuestal</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── Variables de tema ─────────────────────────────────────── */
+:root{
+  --bg-page:#eef2f7;
+  --bg-main:#fff;
+  --bg-topbar:#fff;
+  --bg-card:#fff;
+  --bg-thead:#f0f4fb;
+  --bg-grupo:#e8eef8;
+  --bg-meta:#eef5ff;
+  --bg-mes-hl:#fffde7;
+  --bg-hover-row:#f5f8fc;
+  --bg-hover-grupo:#dde6f5;
+  --border:#dde4ee;
+  --border-tabla:#edf1f7;
+  --border-thead:#d0dae8;
+  --color-body:#1a2a3a;
+  --color-top:#6b7e96;
+  --color-thead:#5a7290;
+  --color-td:#2a3f55;
+  --color-td-left:#4a6482;
+  --color-td-code:#8ea4bc;
+  --color-title:#1b3358;
+  --color-card-val:#1b3358;
+  --color-card-sub:#8ea4bc;
+  --color-section:#5a7a9e;
+  --color-loading:#6b7e96;
+  --shadow:none;
+}
+body.dark{
+  --bg-page:#0f1923;
+  --bg-main:#1a2535;
+  --bg-topbar:#1a2535;
+  --bg-card:#1e2d42;
+  --bg-thead:#162033;
+  --bg-grupo:#162033;
+  --bg-meta:#192a42;
+  --bg-mes-hl:#2a2000;
+  --bg-hover-row:#1f2f45;
+  --bg-hover-grupo:#1c2d44;
+  --border:#263548;
+  --border-tabla:#263548;
+  --border-thead:#263548;
+  --color-body:#c8d8ec;
+  --color-top:#7a96b4;
+  --color-thead:#7a96b4;
+  --color-td:#b0c8e4;
+  --color-td-left:#8aaac8;
+  --color-td-code:#5a7a9e;
+  --color-title:#c8ddf5;
+  --color-card-val:#c8ddf5;
+  --color-card-sub:#5a7a9e;
+  --color-section:#3a5a7e;
+  --color-loading:#5a7a9e;
+}
+
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:13px;
+     background:var(--bg-page);color:var(--color-body);height:100vh;overflow:hidden;
+     transition:background .25s,color .25s}
+
+.app{display:flex;height:100vh}
+.sidebar{width:220px;flex-shrink:0;background:#1b3358;
+         color:#ccdcf0;display:flex;flex-direction:column;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:46px;background:var(--bg-topbar);border-bottom:1px solid var(--border);
+        display:flex;align-items:center;justify-content:space-between;
+        padding:0 18px;font-size:11.5px;color:var(--color-top);flex-shrink:0;
+        transition:background .25s,border-color .25s}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.topbar-right{display:flex;align-items:center;gap:6px}
+.content{flex:1;overflow-y:auto;padding:18px}
+
+.sidebar-logo{padding:14px 12px 10px;border-bottom:1px solid #26477a;flex-shrink:0}
+.sidebar-logo h2{font-size:12px;font-weight:700;color:#fff;line-height:1.3}
+.sidebar-logo p{font-size:9.5px;color:#90aacb;margin-top:2px;
+                text-transform:uppercase;letter-spacing:.05em}
+.sidebar-section{padding:10px 8px 4px;font-size:9px;color:#5a7a9e;
+                 text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.nav-item{display:flex;align-items:flex-start;gap:7px;
+          padding:7px 10px;margin:1px 4px;border-radius:5px;cursor:pointer;
+          color:#c0d4ec;font-size:11px;transition:background .15s;line-height:1.3}
+.nav-item:hover{background:#26477a}
+.nav-item.active{background:#26477a;color:#fff;font-weight:600}
+.nav-badge{margin-left:auto;background:#142a48;border-radius:8px;
+           font-size:9px;padding:1px 5px;color:#6a9fd8;flex-shrink:0}
+.sidebar-divider{border:none;border-top:1px solid #26477a;margin:8px 12px}
+
+.nav-semaforo{display:flex;align-items:center;gap:7px;
+              padding:7px 10px;margin:4px;border-radius:5px;cursor:pointer;
+              color:#c0d4ec;font-size:11px;transition:background .15s;font-weight:600;
+              background:#0d2240;border:1px solid #26477a}
+.nav-semaforo:hover{background:#26477a}
+.nav-semaforo.active{background:#f59e0b;color:#1a0a00;border-color:#d97706}
+
+.mes-pill{background:#fff8e1;color:#7a5500;border:1px solid #ffe082;
+          border-radius:10px;padding:2px 9px;font-size:10.5px;font-weight:600}
+body.dark .mes-pill{background:#2a1e00;color:#ffd369;border-color:#7a5500}
+
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.card{background:var(--bg-card);border-radius:7px;padding:12px 14px;
+      border:1px solid var(--border);transition:background .25s,border-color .25s}
+.card-label{font-size:9.5px;color:var(--color-top);font-weight:600;
+            text-transform:uppercase;letter-spacing:.04em}
+.card-value{font-size:21px;font-weight:700;color:var(--color-card-val);margin-top:5px;line-height:1}
+.card-sub{font-size:10px;color:var(--color-card-sub);margin-top:3px}
+
+.section-header{display:flex;align-items:center;justify-content:space-between;
+                margin-bottom:8px}
+.section-title{font-size:12.5px;font-weight:700;color:var(--color-title)}
+
+.chart-card{background:var(--bg-card);border-radius:7px;border:1px solid var(--border);
+            padding:14px 16px;margin-bottom:16px;transition:background .25s,border-color .25s}
+.chart-card h3{font-size:12px;font-weight:700;color:var(--color-title);margin-bottom:10px}
+.chart-wrap{position:relative;height:170px}
+
+.table-card{background:var(--bg-card);border-radius:7px;border:1px solid var(--border);
+            overflow:hidden;transition:background .25s,border-color .25s}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{background:var(--bg-thead);color:var(--color-thead);font-weight:600;padding:7px 7px;
+         text-align:right;white-space:nowrap;border-bottom:2px solid var(--border-thead);
+         border-right:1px solid var(--border-thead);position:sticky;top:0;z-index:2;
+         transition:background .25s,color .25s}
+thead th.left{text-align:left}
+thead th:last-child{border-right:none}
+thead th.mes-hl{background:#1b3358;color:#fff !important}
+body.dark thead th.mes-hl{background:#0d2240}
+
+tbody tr{border-bottom:1px solid var(--border-tabla)}
+tbody tr:hover{background:var(--bg-hover-row)}
+tbody td{padding:5px 7px;text-align:right;color:var(--color-td);
+         border-right:1px solid var(--border-tabla);white-space:nowrap;
+         transition:background .25s,color .25s}
+tbody td.left{text-align:left;color:var(--color-td-left);max-width:220px;
+              overflow:hidden;text-overflow:ellipsis}
+tbody td.code{color:var(--color-td-code);font-family:monospace;font-size:10px}
+tbody td:last-child{border-right:none}
+tbody td.meta-col{background:var(--bg-meta)}
+tbody td.mes-hl{background:var(--bg-mes-hl)}
+
+td.verde{background:#d4edda;color:#155724;font-weight:600}
+td.amarillo{background:#fff3cd;color:#856404}
+td.rojo{background:#f8d7da;color:#721c24}
+td.mes-hl.verde{background:#a5d6a7 !important}
+td.mes-hl.amarillo{background:#ffe082 !important}
+body.dark td.verde{background:#1a3d26;color:#5ddb8a}
+body.dark td.amarillo{background:#2a2000;color:#ffd369}
+body.dark td.rojo{background:#3d1a1a;color:#f87171}
+body.dark td.mes-hl.verde{background:#1f4a2e !important}
+body.dark td.mes-hl.amarillo{background:#332800 !important}
+
+.row-grupo td{background:var(--bg-grupo);color:var(--color-title);font-weight:700;
+              padding:7px 10px;cursor:pointer;user-select:none;font-size:11.5px}
+.row-grupo:hover td{background:var(--bg-hover-grupo)}
+.chevron{display:inline-block;transition:transform .2s;
+         margin-right:5px;font-size:9px}
+.chevron.open{transform:rotate(90deg)}
+
+.row-total td{background:#1b3358;color:#fff;font-weight:700;
+              padding:7px 7px;border-right:1px solid #26477a}
+.row-total td.left{text-align:left}
+.row-total td:last-child{border-right:none}
+body.dark .row-total td{background:#0d2240}
+
+.badge{display:inline-block;padding:2px 6px;border-radius:20px;
+       font-size:10px;font-weight:700}
+.badge.ok{background:#d4edda;color:#155724}
+.badge.mid{background:#fff3cd;color:#856404}
+.badge.low{background:#f8d7da;color:#721c24}
+body.dark .badge.ok{background:#1a3d26;color:#5ddb8a}
+body.dark .badge.mid{background:#2a2000;color:#ffd369}
+body.dark .badge.low{background:#3d1a1a;color:#f87171}
+
+.btn{display:inline-flex;align-items:center;gap:5px;
+     padding:5px 12px;border-radius:6px;font-size:11px;
+     font-weight:600;cursor:pointer;border:1px solid var(--border);
+     background:var(--bg-card);color:var(--color-title);transition:background .15s,color .15s,border-color .15s}
+.btn:hover{background:var(--bg-grupo)}
+.btn-pdf{background:#1b3358;color:#fff;border-color:#1b3358}
+.btn-pdf:hover{background:#26477a;border-color:#26477a}
+.btn-dark{font-size:15px;padding:4px 9px;border-radius:20px}
+
+.loading{display:flex;flex-direction:column;align-items:center;
+         justify-content:center;height:200px;color:var(--color-loading);gap:12px}
+.spinner{width:28px;height:28px;border:3px solid var(--border);
+         border-top-color:#1b3358;border-radius:50%;
+         animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{background:#fff0f0;border:1px solid #f5c6cb;border-radius:7px;
+           padding:12px 16px;color:#721c24;margin-bottom:14px;font-size:12px}
+body.dark .error-msg{background:#3d1a1a;border-color:#7a2828;color:#f87171}
+
+/* ── Vista Semáforo Global ──────────────────────────────────── */
+#semaforo-view{display:none}
+#semaforo-view.active{display:block}
+
+.semaforo-header{margin-bottom:18px}
+.semaforo-header h2{font-size:16px;font-weight:700;color:var(--color-title);margin-bottom:4px}
+.semaforo-header p{font-size:11px;color:var(--color-top)}
+
+.semaforo-resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.sem-res-card{border-radius:8px;padding:12px 16px;text-align:center}
+.sem-res-card.verde{background:#d4edda;border:2px solid #28a745}
+.sem-res-card.amarillo{background:#fff3cd;border:2px solid #ffc107}
+.sem-res-card.rojo{background:#f8d7da;border:2px solid #dc3545}
+body.dark .sem-res-card.verde{background:#1a3d26;border-color:#2d6a4f}
+body.dark .sem-res-card.amarillo{background:#2a2000;border-color:#b45309}
+body.dark .sem-res-card.rojo{background:#3d1a1a;border-color:#b91c1c}
+.sem-res-num{font-size:32px;font-weight:800;line-height:1}
+.sem-res-card.verde .sem-res-num{color:#155724}
+.sem-res-card.amarillo .sem-res-num{color:#856404}
+.sem-res-card.rojo .sem-res-num{color:#721c24}
+body.dark .sem-res-card.verde .sem-res-num{color:#5ddb8a}
+body.dark .sem-res-card.amarillo .sem-res-num{color:#ffd369}
+body.dark .sem-res-card.rojo .sem-res-num{color:#f87171}
+.sem-res-label{font-size:11px;font-weight:600;margin-top:4px}
+.sem-res-card.verde .sem-res-label{color:#155724}
+.sem-res-card.amarillo .sem-res-label{color:#856404}
+.sem-res-card.rojo .sem-res-label{color:#721c24}
+body.dark .sem-res-card.verde .sem-res-label{color:#5ddb8a}
+body.dark .sem-res-card.amarillo .sem-res-label{color:#ffd369}
+body.dark .sem-res-card.rojo .sem-res-label{color:#f87171}
+
+.semaforo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+
+.sem-card{background:var(--bg-card);border-radius:10px;border:2px solid var(--border);
+          padding:16px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s,background .25s}
+.sem-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.sem-card.sem-verde{border-color:#28a745}
+.sem-card.sem-amarillo{border-color:#ffc107}
+.sem-card.sem-rojo{border-color:#dc3545}
+body.dark .sem-card.sem-verde{border-color:#2d6a4f}
+body.dark .sem-card.sem-amarillo{border-color:#b45309}
+body.dark .sem-card.sem-rojo{border-color:#b91c1c}
+
+.sem-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px}
+.sem-card-codigo{font-size:10px;font-weight:700;color:var(--color-td-code);font-family:monospace}
+.sem-semaforo{width:24px;height:24px;border-radius:50%;flex-shrink:0;
+              box-shadow:0 0 0 3px rgba(0,0,0,.1)}
+.sem-semaforo.verde{background:#28a745;box-shadow:0 0 10px rgba(40,167,69,.5)}
+.sem-semaforo.amarillo{background:#ffc107;box-shadow:0 0 10px rgba(255,193,7,.5)}
+.sem-semaforo.rojo{background:#dc3545;box-shadow:0 0 10px rgba(220,53,69,.5)}
+body.dark .sem-semaforo.verde{box-shadow:0 0 12px rgba(45,106,79,.8)}
+body.dark .sem-semaforo.amarillo{box-shadow:0 0 12px rgba(180,83,9,.8)}
+body.dark .sem-semaforo.rojo{box-shadow:0 0 12px rgba(185,28,28,.8)}
+
+.sem-titulo{font-size:12px;font-weight:600;color:var(--color-title);
+            line-height:1.4;margin-bottom:10px;min-height:32px}
+
+.sem-barra-wrap{background:var(--bg-page);border-radius:20px;height:10px;
+                overflow:hidden;margin-bottom:6px;border:1px solid var(--border)}
+.sem-barra-fill{height:100%;border-radius:20px;transition:width .6s ease}
+.sem-barra-fill.verde{background:linear-gradient(90deg,#28a745,#5ddb8a)}
+.sem-barra-fill.amarillo{background:linear-gradient(90deg,#ffc107,#ffe066)}
+.sem-barra-fill.rojo{background:linear-gradient(90deg,#dc3545,#f87171)}
+
+.sem-nums{display:flex;justify-content:space-between;font-size:10px;color:var(--color-top)}
+.sem-pct{font-size:22px;font-weight:800;margin-top:6px}
+.sem-pct.verde{color:#155724}
+.sem-pct.amarillo{color:#856404}
+.sem-pct.rojo{color:#721c24}
+body.dark .sem-pct.verde{color:#5ddb8a}
+body.dark .sem-pct.amarillo{color:#ffd369}
+body.dark .sem-pct.rojo{color:#f87171}
+
+.sem-loading{text-align:center;padding:40px;color:var(--color-loading);grid-column:1/-1}
+.sem-spinner{display:inline-block;width:28px;height:28px;border:3px solid var(--border);
+             border-top-color:#1b3358;border-radius:50%;animation:spin .8s linear infinite;
+             margin-bottom:10px}
+
+/* ── Print ─────────────────────────────────────────────────── */
+@media print {
+  /* ── Página horizontal A4 ── */
+  @page { size: A4 landscape; margin: 10mm 8mm; }
+
+  /* ── Ocultar UI de navegación ── */
+  .sidebar, .topbar, .btn, .section-header .btn,
+  #btn-semaforo, #semaforo-view { display: none !important; }
+
+  /* ── Cabecera de impresión ── */
+  #print-header { display: block !important; }
+
+  /* ── Layout ── */
+  html, body { height: auto !important; overflow: visible !important;
+               background: #fff !important; color: #000 !important; }
+  body.dark { background: #fff !important; color: #000 !important; }
+  .app  { display: block !important; height: auto !important; }
+  .main { display: block !important; overflow: visible !important; }
+  .content { overflow: visible !important; padding: 4px 0 !important; }
+
+  /* ── Salto de página entre secciones ── */
+  .chart-card { page-break-after: always; break-after: always; }
+  tbody tr    { page-break-inside: avoid; break-inside: avoid; }
+
+  /* ── KPI cards ── */
+  .cards { grid-template-columns: repeat(4,1fr) !important; margin-bottom: 8px; }
+  .card  { border: 1px solid #ccc !important; background: #fff !important;
+           box-shadow: none !important; }
+  .card-label { color: #444 !important; }
+  .card-value { color: #1b3358 !important; }
+  .card-sub   { color: #666 !important; }
+
+  /* ── Tabla compacta para papel A4 landscape ── */
+  table   { font-size: 7px !important; width: 100% !important;
+            table-layout: fixed !important; }
+  .table-wrap { overflow: visible !important; }
+
+  /* Columnas de texto: anchos fijos para que quepan */
+  thead th, tbody td { padding: 3px 3px !important; white-space: nowrap !important; }
+  thead th.left, tbody td.left { white-space: normal !important;
+                                  overflow: hidden !important;
+                                  text-overflow: ellipsis !important; }
+
+  /* Quitar min-width definido inline */
+  thead th[style] { min-width: 0 !important; }
+
+  /* Cabecera y colores de tabla */
+  thead th { background: #1b3358 !important; color: #fff !important;
+             -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  thead th.mes-hl { background: #f59e0b !important; color: #000 !important;
+                    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .row-grupo td { background: #dde6f5 !important; color: #1b3358 !important;
+                  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .row-total td { background: #1b3358 !important; color: #fff !important;
+                  -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.verde    { background: #c8e6c9 !important; color: #155724 !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.amarillo { background: #fff9c4 !important; color: #856404 !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.rojo     { background: #ffcdd2 !important; color: #721c24 !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.meta-col { background: #e3f2fd !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.mes-hl   { background: #fff9c4 !important;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.mes-hl.verde   { background: #a5d6a7 !important;
+                      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td.mes-hl.amarillo{ background: #ffe082 !important;
+                      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* Reemplazar canvas con tabla imprimible */
+  .chart-wrap canvas    { display: none !important; }
+  #print-chart-table    { display: table !important; }
+
+  /* Ocultar badges, reemplazar por texto */
+  .badge.ok  { background: #c8e6c9 !important; color: #155724 !important;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .badge.mid { background: #fff9c4 !important; color: #856404 !important;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .badge.low { background: #ffcdd2 !important; color: #721c24 !important;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .table-card, .chart-card, .card { box-shadow: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h2>Sistema Programa<br>Presupuestal</h2>
+    <p>Hospital San José</p>
+  </div>
+
+  <div style="padding:10px 8px">
+    <div class="nav-semaforo" id="btn-semaforo" onclick="toggleSemaforo()">
+      🚦 Semáforo Global
+    </div>
+  </div>
+  <hr class="sidebar-divider"/>
+
+  <div class="sidebar-section">Programas (PP)</div>
+  <div id="sidebar-nav">
+    <div class="nav-item">
+      <span class="spinner" style="width:13px;height:13px;border-width:2px"></span>
+      &nbsp;Cargando...
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span id="topbar-periodo">—</span>
+      <span id="topbar-mes-pill" class="mes-pill" style="display:none"></span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-dark" id="btn-dark" onclick="toggleDark()" title="Modo oscuro">🌙</button>
+      <button class="btn btn-pdf" onclick="imprimirPagina()">&#128438; Exportar PDF</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="error-box" class="error-msg" style="display:none"></div>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <span>Cargando programas desde Google Sheets...</span>
+    </div>
+
+    <!-- ── Vista detalle programa ── -->
+    <div id="main-content" style="display:none">
+      <div style="margin-bottom:12px">
+        <div style="font-size:9.5px;color:var(--color-top);font-weight:600;
+                    text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">
+          Programa Presupuestal
+        </div>
+        <div id="titulo-programa" style="font-size:14px;font-weight:700;
+             color:var(--color-title);line-height:1.4;max-width:860px"></div>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label">Meta programada</div>
+          <div class="card-value" id="card-meta-prog">—</div>
+          <div class="card-sub">Unidades totales</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Ejecutado</div>
+          <div class="card-value" id="card-ejecutado">—</div>
+          <div class="card-sub">Total meta física</div>
+        </div>
+        <div class="card">
+          <div class="card-label">% Avance</div>
+          <div class="card-value" id="card-avance">—</div>
+          <div class="card-sub">Progreso acumulado</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Mes actual</div>
+          <div class="card-value" id="card-mes-ejecutado">—</div>
+          <div class="card-sub" id="card-mes-label">Ejecución del mes</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Avance % por producto</h3>
+        <div class="chart-wrap">
+          <canvas id="grafico-avance"></canvas>
+        </div>
+        <table id="print-chart-table" style="display:none;font-size:10px;margin-top:8px;width:100%">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:4px 6px;background:#1b3358;color:#fff">Producto</th>
+              <th style="text-align:right;padding:4px 6px;background:#1b3358;color:#fff">Meta Prog.</th>
+              <th style="text-align:right;padding:4px 6px;background:#1b3358;color:#fff">Ejecutado</th>
+              <th style="text-align:right;padding:4px 6px;background:#1b3358;color:#fff">Avance %</th>
+            </tr>
+          </thead>
+          <tbody id="print-chart-body"></tbody>
+        </table>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Metas físicas — detalle por actividad</div>
+        <span id="mes-actual-label" style="font-size:10.5px;color:var(--color-top);display:none"></span>
+      </div>
+
+      <!-- Cabecera visible solo al imprimir -->
+      <div id="print-header" style="display:none;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;
+                    border-bottom:2px solid #1b3358;padding-bottom:6px;margin-bottom:8px">
+          <div>
+            <div style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.05em">
+              Hospital San José · Sistema Programa Presupuestal
+            </div>
+            <div id="ph-titulo" style="font-size:13px;font-weight:700;color:#1b3358"></div>
+          </div>
+          <div style="text-align:right;font-size:9px;color:#666">
+            <div id="ph-periodo"></div>
+            <div id="ph-fecha"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-wrap">
+          <table id="tabla-metas">
+            <colgroup id="tabla-cols"></colgroup>
+            <thead id="tabla-thead"></thead>
+            <tbody id="tabla-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Vista Semáforo Global ── -->
+    <div id="semaforo-view">
+      <div class="semaforo-header">
+        <h2>🚦 Semáforo Global de Programas</h2>
+        <p>Estado de avance de todos los Programas Presupuestales · <span id="sem-periodo"></span></p>
+      </div>
+
+      <div class="semaforo-resumen" id="sem-resumen" style="display:none">
+        <div class="sem-res-card verde">
+          <div class="sem-res-num" id="sem-count-verde">0</div>
+          <div class="sem-res-label">✅ En meta (≥ 80%)</div>
+        </div>
+        <div class="sem-res-card amarillo">
+          <div class="sem-res-num" id="sem-count-amarillo">0</div>
+          <div class="sem-res-label">⚠️ En proceso (50–79%)</div>
+        </div>
+        <div class="sem-res-card rojo">
+          <div class="sem-res-num" id="sem-count-rojo">0</div>
+          <div class="sem-res-label">🔴 En riesgo (&lt; 50%)</div>
+        </div>
+      </div>
+
+      <div class="semaforo-grid" id="semaforo-grid">
+        <div class="sem-loading">
+          <div class="sem-spinner"></div>
+          <div>Cargando datos de todos los programas...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<script>
+var MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                    'Julio','Agosto','Setiembre','Octubre','Noviembre','Diciembre'];
+var MESES_CORTO  = ['ENE','FEB','MAR','ABR','MAY','JUN',
+                    'JUL','AGO','SET','OCT','NOV','DIC'];
+var MES_ACTUAL   = new Date().getMonth();
+var ANO_ACTUAL   = new Date().getFullYear();
+
+var programas     = [];
+var hojaActual    = '';
+var expandido     = {};
+var chartInstance = null;
+var datosActuales = null;
+var vistaActual   = 'detalle'; // 'detalle' | 'semaforo'
+var datosSemaforo = {}; // cache: hoja -> datos
+
+function fmt(n){ return n===0?'0':Number(n).toLocaleString('es-PE'); }
+function fmtPct(n){ return Number(n).toFixed(2)+'%'; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                                     .replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Modo oscuro ───────────────────────────────────────────────
+var darkMode = localStorage.getItem('darkMode') === '1';
+function applyDark(){
+  document.body.classList.toggle('dark', darkMode);
+  document.getElementById('btn-dark').textContent = darkMode ? '☀️' : '🌙';
+  if(chartInstance) actualizarColoresChart();
+}
+function toggleDark(){
+  darkMode = !darkMode;
+  localStorage.setItem('darkMode', darkMode ? '1' : '0');
+  applyDark();
+}
+function actualizarColoresChart(){
+  if(!chartInstance) return;
+  var isDark = darkMode;
+  chartInstance.options.scales.x.grid.color = isDark ? '#263548' : '#edf1f7';
+  chartInstance.options.scales.x.ticks.color = isDark ? '#7a96b4' : '#555';
+  chartInstance.options.scales.y.ticks.color = isDark ? '#7a96b4' : '#555';
+  chartInstance.update();
+}
+applyDark();
+
+// ── beforeprint ───────────────────────────────────────────────
+window.addEventListener('beforeprint', function(){
+  Object.keys(expandido).forEach(function(cod){
+    if(!expandido[cod]){ toggleGrupo(cod); }
+  });
+});
+
+// ── Vista Semáforo ────────────────────────────────────────────
+function toggleSemaforo(){
+  if(vistaActual === 'semaforo'){
+    mostrarDetalle();
+  } else {
+    mostrarSemaforo();
+  }
+}
+
+function mostrarDetalle(){
+  vistaActual = 'detalle';
+  document.getElementById('semaforo-view').classList.remove('active');
+  document.getElementById('btn-semaforo').classList.remove('active');
+  if(hojaActual){
+    document.getElementById('main-content').style.display = 'block';
+    document.getElementById('topbar-periodo').textContent =
+      hojaActual + '  ·  Periodo ' + ANO_ACTUAL;
+  }
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    el.style.opacity = '1';
+    el.style.pointerEvents = '';
+  });
+}
+
+function mostrarSemaforo(){
+  vistaActual = 'semaforo';
+  document.getElementById('semaforo-view').classList.add('active');
+  document.getElementById('btn-semaforo').classList.add('active');
+  document.getElementById('main-content').style.display = 'none';
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('topbar-periodo').textContent = 'Vista Global · Periodo ' + ANO_ACTUAL;
+  document.getElementById('sem-periodo').textContent = MESES_NOMBRE[MES_ACTUAL] + ' ' + ANO_ACTUAL;
+
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    el.style.opacity = '0.5';
+    el.style.pointerEvents = 'none';
+  });
+
+  cargarSemaforo();
+}
+
+function colorSemaforo(pct){
+  if(pct >= 80) return 'verde';
+  if(pct >= 50) return 'amarillo';
+  return 'rojo';
+}
+
+function cargarSemaforo(){
+  if(!programas.length) return;
+
+  var grid = document.getElementById('semaforo-grid');
+  grid.innerHTML = '<div class="sem-loading"><div class="sem-spinner"></div><div>Cargando datos...</div></div>';
+  document.getElementById('sem-resumen').style.display = 'none';
+
+  var pendientes = programas.length;
+  var resultados = [];
+
+  programas.forEach(function(p, idx){
+    if(datosSemaforo[p.hoja]){
+      resultados[idx] = { prog: p, datos: datosSemaforo[p.hoja] };
+      pendientes--;
+      if(pendientes === 0) renderSemaforo(resultados);
+      return;
+    }
+
+    (function(index, prog){
+      var _success = function(){};
+      var _failure = function(){};
+      var runner = {
+        withSuccessHandler: function(fn){ _success = fn; return runner; },
+        withFailureHandler: function(fn){ _failure = fn; return runner; },
+        getDatosHoja: function(h){
+          google.script.run
+            .withSuccessHandler(function(d){
+              datosSemaforo[prog.hoja] = d;
+              resultados[index] = { prog: prog, datos: d };
+              pendientes--;
+              if(pendientes === 0) renderSemaforo(resultados);
+            })
+            .withFailureHandler(function(e){
+              resultados[index] = { prog: prog, datos: null };
+              pendientes--;
+              if(pendientes === 0) renderSemaforo(resultados);
+            })
+            .getDatosHoja(h);
+        }
+      };
+      runner.getDatosHoja(prog.hoja);
+    })(idx, p);
+  });
+}
+
+function renderSemaforo(resultados){
+  if(vistaActual !== 'semaforo') return;
+
+  var grid = document.getElementById('semaforo-grid');
+  grid.innerHTML = '';
+
+  var cVerde = 0, cAmarillo = 0, cRojo = 0;
+
+  resultados.forEach(function(r){
+    if(!r) return;
+    var p     = r.prog;
+    var datos = r.datos;
+    var pct   = 0;
+    var metaProg = 0, ejecutado = 0;
+
+    if(datos && datos.totales){
+      pct      = datos.totales.avancePct || 0;
+      metaProg = datos.totales.metaProg  || 0;
+      ejecutado= datos.totales.totalMeta || 0;
+    }
+
+    var color = colorSemaforo(pct);
+    if(color === 'verde')    cVerde++;
+    else if(color === 'amarillo') cAmarillo++;
+    else                    cRojo++;
+
+    var fillW = Math.min(pct, 100).toFixed(1);
+    var titulo = datos ? (datos.titulo || p.codigo) : p.codigo;
+
+    var card = document.createElement('div');
+    card.className = 'sem-card sem-' + color;
+    card.innerHTML =
+      '<div class="sem-card-top">' +
+        '<div>' +
+          '<div class="sem-card-codigo">' + esc(p.codigo) + '</div>' +
+        '</div>' +
+        '<div class="sem-semaforo ' + color + '"></div>' +
+      '</div>' +
+      '<div class="sem-titulo">' + esc(titulo) + '</div>' +
+      '<div class="sem-barra-wrap">' +
+        '<div class="sem-barra-fill ' + color + '" style="width:' + fillW + '%"></div>' +
+      '</div>' +
+      '<div class="sem-nums">' +
+        '<span>Ejecutado: <strong>' + fmt(ejecutado) + '</strong></span>' +
+        '<span>Meta: <strong>' + fmt(metaProg) + '</strong></span>' +
+      '</div>' +
+      '<div class="sem-pct ' + color + '">' + fmtPct(pct) + '</div>';
+
+    card.addEventListener('click', function(){
+      mostrarDetalle();
+      cargarPrograma(p.hoja);
+    });
+
+    grid.appendChild(card);
+  });
+
+  document.getElementById('sem-count-verde').textContent   = cVerde;
+  document.getElementById('sem-count-amarillo').textContent = cAmarillo;
+  document.getElementById('sem-count-rojo').textContent    = cRojo;
+  document.getElementById('sem-resumen').style.display = 'grid';
+}
+
+// ── 1. Cargar programas ───────────────────────────────────────
+google.script.run
+  .withSuccessHandler(onProgramasOk)
+  .withFailureHandler(onErrorGlobal)
+  .getProgramas();
+
+function onProgramasOk(lista){
+  programas = lista||[];
+  if(!programas.length){
+    mostrarError('No se encontraron hojas que comiencen con "PP " en este Google Sheet.');
+    return;
+  }
+
+  var nav = document.getElementById('sidebar-nav');
+  nav.innerHTML = '';
+  programas.forEach(function(p){
+    var div = document.createElement('div');
+    div.className = 'nav-item';
+    div.dataset.hoja = p.hoja;
+    div.innerHTML =
+      '<span style="font-size:9px">&#9632;</span>' +
+      '<span>' + esc(p.codigo) + '</span>' +
+      '<span class="nav-badge">' + esc(p.id) + '</span>';
+    div.addEventListener('click', function(){
+      mostrarDetalle();
+      cargarPrograma(p.hoja);
+    });
+    nav.appendChild(div);
+  });
+
+  var pill = document.getElementById('topbar-mes-pill');
+  pill.style.display = 'inline-block';
+  pill.textContent = MESES_NOMBRE[MES_ACTUAL] + ' ' + ANO_ACTUAL;
+
+  cargarPrograma(programas[0].hoja);
+}
+
+// ── 2. Cargar datos ───────────────────────────────────────────
+function cargarPrograma(hoja){
+  hojaActual = hoja;
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    el.classList.toggle('active', el.dataset.hoja === hoja);
+    el.style.opacity = '';
+    el.style.pointerEvents = '';
+  });
+  document.getElementById('main-content').style.display = 'none';
+  var ld = document.getElementById('loading');
+  ld.style.display = 'flex';
+  ld.querySelector('span').textContent = 'Cargando ' + hoja + '...';
+
+  google.script.run
+    .withSuccessHandler(onDatosOk)
+    .withFailureHandler(onErrorGlobal)
+    .getDatosHoja(hoja);
+}
+
+// ── 3. Renderizar ─────────────────────────────────────────────
+function onDatosOk(datos){
+  document.getElementById('loading').style.display = 'none';
+  if(datos.error){ mostrarError(datos.error); return; }
+
+  datosActuales = datos;
+  datosSemaforo[datos.hoja] = datos;
+
+  var metas   = datos.metas   || [];
+  var totales = datos.totales || null;
+
+  document.getElementById('topbar-periodo').textContent =
+    datos.hoja + '  ·  Periodo ' + ANO_ACTUAL;
+  document.getElementById('titulo-programa').textContent = datos.titulo;
+
+  if(totales){
+    document.getElementById('card-meta-prog').textContent  = fmt(totales.metaProg);
+    document.getElementById('card-ejecutado').textContent  = fmt(totales.totalMeta);
+    var pct = totales.avancePct;
+    var avEl = document.getElementById('card-avance');
+    avEl.textContent  = fmtPct(pct);
+    avEl.style.color  = pct >= 50 ? '#155724' : '#721c24';
+    document.getElementById('card-mes-ejecutado').textContent = fmt(totales.meses[MES_ACTUAL]);
+    document.getElementById('card-mes-label').textContent =
+      'Ejecutado en ' + MESES_NOMBRE[MES_ACTUAL];
+  }
+
+  var mesLabel = document.getElementById('mes-actual-label');
+  mesLabel.style.display = 'inline-block';
+  mesLabel.textContent = MESES_NOMBRE[MES_ACTUAL] + ' resaltado';
+
+  renderGrafico(metas);
+  renderTabla(metas, totales);
+  document.getElementById('main-content').style.display = 'block';
+}
+
+// ── 4. Gráfico ────────────────────────────────────────────────
+function renderGrafico(metas){
+  var grupos = {}, orden = [];
+  metas.forEach(function(m){
+    var cod = m.codigoProducto;
+    if(!grupos[cod]){
+      grupos[cod] = { nombre: cod, sumaProg: 0, sumaTotal: 0 };
+      orden.push(cod);
+    }
+    grupos[cod].sumaProg  += m.metaProg;
+    grupos[cod].sumaTotal += m.totalMeta;
+  });
+
+  var etiquetas = [], valores = [], colores = [];
+  var printBody = document.getElementById('print-chart-body');
+  printBody.innerHTML = '';
+
+  orden.forEach(function(cod){
+    var g   = grupos[cod];
+    var pct = g.sumaProg > 0 ? (g.sumaTotal / g.sumaProg) * 100 : 0;
+    pct = Math.round(pct * 100) / 100;
+    etiquetas.push(cod);
+    valores.push(pct);
+    colores.push(pct >= 80 ? '#2d6a4f' : pct >= 50 ? '#e9c46a' : '#e63946');
+
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td style="padding:3px 6px;border-bottom:1px solid #ddd">' + esc(cod) + '</td>' +
+                   '<td style="text-align:right;padding:3px 6px;border-bottom:1px solid #ddd">' + fmt(g.sumaProg) + '</td>' +
+                   '<td style="text-align:right;padding:3px 6px;border-bottom:1px solid #ddd">' + fmt(g.sumaTotal) + '</td>' +
+                   '<td style="text-align:right;padding:3px 6px;border-bottom:1px solid #ddd">' + fmtPct(pct) + '</td>';
+    printBody.appendChild(tr);
+  });
+
+  var isDark = darkMode;
+  if(chartInstance){ chartInstance.destroy(); }
+  var ctx = document.getElementById('grafico-avance').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: etiquetas,
+      datasets: [{
+        label: 'Avance %',
+        data: valores,
+        backgroundColor: colores,
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(c){ return ' ' + c.parsed.x.toFixed(2) + '%'; }
+          }
+        }
+      },
+      scales: {
+        x: {
+          min: 0,
+          max: Math.max(100, Math.max.apply(null, valores.length ? valores : [100]) * 1.1),
+          ticks: { callback: function(v){ return v+'%'; }, font: { size: 10 }, color: isDark?'#7a96b4':'#555' },
+          grid: { color: isDark?'#263548':'#edf1f7' }
+        },
+        y: { ticks: { font: { size: 10 }, color: isDark?'#7a96b4':'#555' }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── 5. Tabla ──────────────────────────────────────────────────
+function renderTabla(metas, totales){
+  var thead = document.getElementById('tabla-thead');
+
+  // Colgroup para anchos en impresión
+  var cg = document.getElementById('tabla-cols');
+  var cols =
+    '<col style="width:8%">'  +   // Producto
+    '<col style="width:5%">'  +   // Sub Prod
+    '<col style="width:16%">' +   // Actividad
+    '<col style="width:5%">'  +   // U.Medida
+    '<col style="width:4%">'  +   // M.Reprog
+    '<col style="width:4%">';     // M.Prog
+  for(var c=0;c<12;c++) cols += '<col style="width:3.5%">';
+  cols += '<col style="width:4%">' + '<col style="width:4%">';
+  cg.innerHTML = cols;
+
+  var ths = '<tr>' +
+    '<th class="left" style="min-width:140px">Producto</th>' +
+    '<th class="left" style="min-width:65px">Sub Prod.</th>' +
+    '<th class="left" style="min-width:230px">Actividad</th>' +
+    '<th style="min-width:65px">U. Medida</th>' +
+    '<th class="meta-col" style="min-width:65px">M.Reprog.</th>' +
+    '<th class="meta-col" style="min-width:65px">M.Prog.</th>';
+  for(var i=0;i<12;i++){
+    var esActual = i===MES_ACTUAL;
+    ths += '<th style="min-width:42px"' +
+           (esActual?' class="mes-hl"':'') + '>' +
+           MESES_CORTO[i] + (esActual?' &#9660;':'') + '</th>';
+  }
+  ths += '<th style="min-width:65px;font-weight:700">T.Meta</th>' +
+         '<th style="min-width:58px;font-weight:700">Avance</th></tr>';
+  thead.innerHTML = ths;
+
+  var grupos = [], mapa = {};
+  metas.forEach(function(m){
+    if(!mapa[m.codigoProducto]){
+      mapa[m.codigoProducto] = { nombre: m.producto, filas: [] };
+      grupos.push(m.codigoProducto);
+    }
+    mapa[m.codigoProducto].filas.push(m);
+  });
+
+  if(grupos.length>0) expandido[grupos[0]] = true;
+
+  var tbody = document.getElementById('tabla-body');
+  tbody.innerHTML = '';
+
+  grupos.forEach(function(cod){
+    var g       = mapa[cod];
+    var abierto = !!expandido[cod];
+
+    var trG = document.createElement('tr');
+    trG.className = 'row-grupo';
+    trG.dataset.grupo = cod;
+    trG.innerHTML = '<td colspan="20"><span class="chevron'+(abierto?' open':'')+'">&#9658;</span>' +
+                    esc(g.nombre) + '</td>';
+    trG.addEventListener('click', function(){ toggleGrupo(cod); });
+    tbody.appendChild(trG);
+
+    g.filas.forEach(function(m){
+      var tr = document.createElement('tr');
+      tr.className = 'row-dato';
+      tr.dataset.grupo = cod;
+      if(!abierto) tr.style.display = 'none';
+
+      var avancePct = m.metaProg > 0
+        ? Math.round((m.totalMeta / m.metaProg) * 10000) / 100
+        : 0;
+
+      var celdas = '';
+      for(var i=0;i<12;i++){
+        var v   = m.meses[i];
+        var cls = claseCelda(v, m.metaProg);
+        var esA = i===MES_ACTUAL;
+        var allCls = [cls, esA?'mes-hl':''].filter(Boolean).join(' ');
+        celdas += '<td'+(allCls?' class="'+allCls+'"':'')+'>' +
+                  (v!==0?fmt(v):'') + '</td>';
+      }
+
+      var avCls = avancePct>=80?'ok':avancePct>=50?'mid':'low';
+      tr.innerHTML =
+        '<td class="left code">' + esc(m.codigoProducto) + '</td>' +
+        '<td class="left">'     + esc(m.subProducto)     + '</td>' +
+        '<td class="left" title="'+esc(m.actividad)+'">' + esc(m.actividad) + '</td>' +
+        '<td class="left">'     + esc(m.unidadMedida)    + '</td>' +
+        '<td class="meta-col">' + fmt(m.metaReprog)       + '</td>' +
+        '<td class="meta-col">' + fmt(m.metaProg)         + '</td>' +
+        celdas +
+        '<td><strong>' + fmt(m.totalMeta) + '</strong></td>' +
+        '<td><span class="badge '+avCls+'">'+fmtPct(avancePct)+'</span></td>';
+      tbody.appendChild(tr);
+    });
+  });
+
+  if(totales){
+    var trT = document.createElement('tr');
+    trT.className = 'row-total';
+    var cesMes = '';
+    for(var i=0;i<12;i++){
+      cesMes += '<td'+(i===MES_ACTUAL?' class="mes-hl"':'')+'>' +
+                (totales.meses[i]!==0?fmt(totales.meses[i]):'') + '</td>';
+    }
+    trT.innerHTML =
+      '<td class="left" colspan="4">TOTAL GENERAL</td>' +
+      '<td>' + fmt(totales.metaReprog) + '</td>' +
+      '<td>' + fmt(totales.metaProg)   + '</td>' +
+      cesMes +
+      '<td>' + fmt(totales.totalMeta) + '</td>' +
+      '<td>' + fmtPct(totales.avancePct) + '</td>';
+    tbody.appendChild(trT);
+  }
+}
+
+function claseCelda(val, metaProg){
+  if(val===0) return '';
+  var mm = metaProg>0 ? metaProg/12 : 0;
+  if(mm===0) return val>0?'verde':'';
+  var p = (val/mm)*100;
+  return p>=100?'verde':p>=50?'amarillo':'rojo';
+}
+
+function toggleGrupo(cod){
+  expandido[cod] = !expandido[cod];
+  var ab = expandido[cod];
+  var trG = document.querySelector('tr.row-grupo[data-grupo="'+cod+'"]');
+  if(trG){
+    var ch = trG.querySelector('.chevron');
+    if(ch){ if(ab) ch.classList.add('open'); else ch.classList.remove('open'); }
+  }
+  document.querySelectorAll('tr.row-dato[data-grupo="'+cod+'"]').forEach(function(tr){
+    tr.style.display = ab?'':'none';
+  });
+}
+
+// ── 6. Imprimir / PDF ─────────────────────────────────────────
+function imprimirPagina(){
+  // Llenar encabezado de impresión
+  var tituloEl = document.getElementById('titulo-programa');
+  document.getElementById('ph-titulo').textContent =
+    tituloEl ? tituloEl.textContent : (hojaActual || '');
+  document.getElementById('ph-periodo').textContent =
+    hojaActual + ' · Periodo ' + ANO_ACTUAL;
+  var ahora = new Date();
+  document.getElementById('ph-fecha').textContent =
+    'Generado: ' + ahora.toLocaleDateString('es-PE') + ' ' +
+    ahora.toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'});
+
+  // Expandir todos los grupos
+  Object.keys(expandido).forEach(function(cod){
+    if(!expandido[cod]) toggleGrupo(cod);
+  });
+  document.querySelectorAll('tr.row-dato').forEach(function(tr){
+    tr.style.display = '';
+  });
+  setTimeout(function(){ window.print(); }, 150);
+}
+
+function mostrarError(msg){
+  document.getElementById('loading').style.display = 'none';
+  var b = document.getElementById('error-box');
+  b.textContent = msg;
+  b.style.display = 'block';
+}
+function onErrorGlobal(err){
+  mostrarError('Error del servidor: '+(err.message||String(err)));
+}
+</script>
+</body>
+</html>

@@ -369,8 +369,18 @@ body.dark .sem-pct.rojo{color:#f87171}
 <!-- Sidebar -->
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <h2>Sistema Programa<br>Presupuestal</h2>
-    <p>Hospital San José</p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="36" height="36" rx="8" fill="#26477a"/>
+        <rect x="15" y="7" width="6" height="22" rx="2" fill="#fff"/>
+        <rect x="7" y="15" width="22" height="6" rx="2" fill="#fff"/>
+        <circle cx="18" cy="18" r="3" fill="#5aabff" opacity=".7"/>
+      </svg>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#fff;line-height:1.2">Sistema PP</div>
+        <div style="font-size:9px;color:#90aacb;text-transform:uppercase;letter-spacing:.05em">Hospital San José</div>
+      </div>
+    </div>
   </div>
 
   <div style="padding:10px 8px">
@@ -462,6 +472,23 @@ body.dark .sem-pct.rojo{color:#f87171}
         </table>
       </div>
 
+      <div class="chart-card">
+        <div class="section-header" style="margin-bottom:10px">
+          <h3 style="font-size:12px;font-weight:700;color:var(--color-title);margin:0">
+            Evolución mensual del avance acumulado
+          </h3>
+          <div style="display:flex;gap:14px;font-size:10px;color:var(--color-top);align-items:center">
+            <span><span style="display:inline-block;width:18px;height:3px;background:#1b3358;
+                  border-radius:2px;vertical-align:middle;margin-right:4px"></span>Ejecutado</span>
+            <span><span style="display:inline-block;width:18px;height:2px;background:#e9c46a;
+                  border-radius:2px;vertical-align:middle;margin-right:4px;border-top:2px dashed #e9c46a"></span>Meta ideal</span>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:160px">
+          <canvas id="grafico-linea"></canvas>
+        </div>
+      </div>
+
       <div class="section-header">
         <div class="section-title">Metas físicas — detalle por actividad</div>
         <span id="mes-actual-label" style="font-size:10.5px;color:var(--color-top);display:none"></span>
@@ -469,16 +496,24 @@ body.dark .sem-pct.rojo{color:#f87171}
 
       <!-- Cabecera visible solo al imprimir -->
       <div id="print-header" style="display:none;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-end;
-                    border-bottom:2px solid #1b3358;padding-bottom:6px;margin-bottom:8px">
-          <div>
-            <div style="font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.05em">
-              Hospital San José · Sistema Programa Presupuestal
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    border-bottom:2px solid #1b3358;padding-bottom:8px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <svg width="44" height="44" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="36" height="36" rx="8" fill="#1b3358"/>
+              <rect x="15" y="7" width="6" height="22" rx="2" fill="#fff"/>
+              <rect x="7" y="15" width="22" height="6" rx="2" fill="#fff"/>
+              <circle cx="18" cy="18" r="3" fill="#5aabff" opacity=".7"/>
+            </svg>
+            <div>
+              <div style="font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.06em;font-weight:600">
+                Hospital San José · Sistema Programa Presupuestal
+              </div>
+              <div id="ph-titulo" style="font-size:14px;font-weight:700;color:#1b3358;margin-top:2px"></div>
             </div>
-            <div id="ph-titulo" style="font-size:13px;font-weight:700;color:#1b3358"></div>
           </div>
-          <div style="text-align:right;font-size:9px;color:#666">
-            <div id="ph-periodo"></div>
+          <div style="text-align:right;font-size:9px;color:#666;line-height:1.6">
+            <div id="ph-periodo" style="font-weight:600;color:#1b3358"></div>
             <div id="ph-fecha"></div>
           </div>
         </div>
@@ -540,7 +575,8 @@ var ANO_ACTUAL   = new Date().getFullYear();
 var programas     = [];
 var hojaActual    = '';
 var expandido     = {};
-var chartInstance = null;
+var chartInstance     = null;
+var lineChartInstance = null;
 var datosActuales = null;
 var vistaActual   = 'detalle'; // 'detalle' | 'semaforo'
 var datosSemaforo = {}; // cache: hoja -> datos
@@ -563,12 +599,22 @@ function toggleDark(){
   applyDark();
 }
 function actualizarColoresChart(){
-  if(!chartInstance) return;
   var isDark = darkMode;
-  chartInstance.options.scales.x.grid.color = isDark ? '#263548' : '#edf1f7';
-  chartInstance.options.scales.x.ticks.color = isDark ? '#7a96b4' : '#555';
-  chartInstance.options.scales.y.ticks.color = isDark ? '#7a96b4' : '#555';
-  chartInstance.update();
+  var gridColor  = isDark ? '#263548' : '#edf1f7';
+  var tickColor  = isDark ? '#7a96b4' : '#555';
+  if(chartInstance){
+    chartInstance.options.scales.x.grid.color   = gridColor;
+    chartInstance.options.scales.x.ticks.color  = tickColor;
+    chartInstance.options.scales.y.ticks.color  = tickColor;
+    chartInstance.update();
+  }
+  if(lineChartInstance){
+    lineChartInstance.options.scales.x.grid.color  = gridColor;
+    lineChartInstance.options.scales.x.ticks.color = tickColor;
+    lineChartInstance.options.scales.y.grid.color  = gridColor;
+    lineChartInstance.options.scales.y.ticks.color = tickColor;
+    lineChartInstance.update();
+  }
 }
 applyDark();
 
@@ -821,6 +867,7 @@ function onDatosOk(datos){
   mesLabel.textContent = MESES_NOMBRE[MES_ACTUAL] + ' resaltado';
 
   renderGrafico(metas);
+  renderGraficoLinea(metas, totales);
   renderTabla(metas, totales);
   document.getElementById('main-content').style.display = 'block';
 }
@@ -893,6 +940,107 @@ function renderGrafico(metas){
           grid: { color: isDark?'#263548':'#edf1f7' }
         },
         y: { ticks: { font: { size: 10 }, color: isDark?'#7a96b4':'#555' }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── 4b. Gráfico de línea — evolución mensual ─────────────────
+function renderGraficoLinea(metas, totales){
+  var isDark    = darkMode;
+  var gridColor = isDark ? '#263548' : '#edf1f7';
+  var tickColor = isDark ? '#7a96b4' : '#555';
+
+  // Calcular ejecución acumulada mes a mes
+  var totalMetaProg = totales ? totales.metaProg : 0;
+  var acumulado     = [];   // % ejecutado acumulado hasta cada mes
+  var metaIdeal     = [];   // % ideal lineal (100% / 12 por mes)
+  var labels        = [];
+  var sumaEjec      = 0;
+
+  for(var m = 0; m < 12; m++){
+    var ejecMes = 0;
+    metas.forEach(function(mt){ ejecMes += (mt.meses[m] || 0); });
+    sumaEjec += ejecMes;
+
+    var pctAcum  = totalMetaProg > 0 ? Math.round((sumaEjec / totalMetaProg) * 10000) / 100 : 0;
+    var pctIdeal = Math.round(((m + 1) / 12) * 10000) / 100;
+
+    acumulado.push(m <= MES_ACTUAL ? pctAcum  : null);
+    metaIdeal.push(pctIdeal);
+    labels.push(MESES_CORTO[m]);
+  }
+
+  // Color de la línea según estado en mes actual
+  var pctActual  = acumulado[MES_ACTUAL] || 0;
+  var lineColor  = pctActual >= 80 ? '#2d6a4f' : pctActual >= 50 ? '#1b3358' : '#dc3545';
+  var fillColor  = pctActual >= 80 ? 'rgba(45,106,79,.12)' : pctActual >= 50 ? 'rgba(27,51,88,.10)' : 'rgba(220,53,69,.08)';
+
+  if(lineChartInstance){ lineChartInstance.destroy(); }
+  var ctx = document.getElementById('grafico-linea').getContext('2d');
+  lineChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Ejecutado acumulado',
+          data: acumulado,
+          borderColor: lineColor,
+          backgroundColor: fillColor,
+          borderWidth: 2.5,
+          pointRadius: function(ctx){
+            return ctx.dataIndex === MES_ACTUAL ? 5 : 3;
+          },
+          pointBackgroundColor: lineColor,
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          tension: 0.35,
+          fill: true,
+          spanGaps: false,
+        },
+        {
+          label: 'Meta ideal',
+          data: metaIdeal,
+          borderColor: '#e9c46a',
+          borderWidth: 1.5,
+          borderDash: [5, 4],
+          pointRadius: 0,
+          tension: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(c){
+              if(c.raw === null) return null;
+              return ' ' + c.dataset.label + ': ' + c.parsed.y.toFixed(2) + '%';
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 10 }, color: tickColor },
+          grid:  { color: gridColor }
+        },
+        y: {
+          min: 0,
+          max: 110,
+          ticks: {
+            stepSize: 25,
+            callback: function(v){ return v + '%'; },
+            font: { size: 10 }, color: tickColor
+          },
+          grid: { color: gridColor }
+        }
       }
     }
   });
