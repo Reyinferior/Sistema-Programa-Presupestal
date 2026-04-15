@@ -14,49 +14,66 @@ MOCK_SCRIPT = """
 (function(){
   var MOCK_PROGRAMAS = [
     { id: 'p1', codigo: 'PP 0001', titulo: 'Programa Articulado Nutricional', hoja: 'PP 0001' },
-    { id: 'p2', codigo: 'PP 0104', titulo: 'Reducción de la Mortalidad por Emergencias', hoja: 'PP 0104' },
+    { id: 'p2', codigo: 'PP 0104', titulo: 'Reducción de la Mortalidad por Emergencias y Urgencias', hoja: 'PP 0104' },
     { id: 'p3', codigo: 'PP 0131', titulo: 'Control y Prevención en Salud Mental', hoja: 'PP 0131' },
+    { id: 'p4', codigo: 'PP 0018', titulo: 'Enfermedades No Transmisibles', hoja: 'PP 0018' },
+    { id: 'p5', codigo: 'PP 0024', titulo: 'Prevención y Control del Cáncer', hoja: 'PP 0024' },
+    { id: 'p6', codigo: 'PP 0068', titulo: 'Reducción de Vulnerabilidad y Atención de Emergencias', hoja: 'PP 0068' },
   ];
+
+  var ESCENARIOS = {
+    'PP 0001': { factor: 0.85, label: 'alta' },
+    'PP 0104': { factor: 0.62, label: 'media' },
+    'PP 0131': { factor: 0.38, label: 'baja' },
+    'PP 0018': { factor: 0.91, label: 'alta' },
+    'PP 0024': { factor: 0.55, label: 'media' },
+    'PP 0068': { factor: 0.28, label: 'baja' },
+  };
 
   function mockDatos(hojaName) {
     var titulo = '';
     MOCK_PROGRAMAS.forEach(function(p){ if(p.hoja===hojaName) titulo = p.titulo; });
+    var esc = ESCENARIOS[hojaName] || { factor: 0.6 };
+    var f   = esc.factor;
     var metas = [
       {
         producto: '3000001 - Acciones comunes',
         codigoProducto: '3000001',
         subProducto: 'Sub 01',
-        actividad: 'Actividad de demostración',
+        actividad: 'Actividad de atención directa',
         unidadMedida: 'Persona',
         metaReprog: 1200,
         metaProg: 1200,
-        meses: [100,100,100,100,100,100,100,50,0,0,0,0],
-        totalMeta: 750,
-        avancePct: 62.5,
+        meses: [Math.round(100*f),Math.round(100*f),Math.round(100*f),Math.round(100*f),
+                Math.round(100*f),Math.round(100*f),Math.round(100*f),0,0,0,0,0],
+        totalMeta: Math.round(1200*f*0.58),
+        avancePct: Math.round(f*85*100)/100,
       },
       {
         producto: '3000001 - Acciones comunes',
         codigoProducto: '3000001',
         subProducto: 'Sub 02',
-        actividad: 'Segunda actividad',
+        actividad: 'Seguimiento y monitoreo',
         unidadMedida: 'Atención',
         metaReprog: 800,
         metaProg: 800,
-        meses: [70,70,70,70,70,70,50,0,0,0,0,0],
-        totalMeta: 470,
-        avancePct: 58.75,
+        meses: [Math.round(70*f),Math.round(70*f),Math.round(70*f),Math.round(70*f),
+                Math.round(70*f),Math.round(70*f),Math.round(50*f),0,0,0,0,0],
+        totalMeta: Math.round(800*f*0.56),
+        avancePct: Math.round(f*80*100)/100,
       },
       {
         producto: '3000694 - Gestión de la calidad',
         codigoProducto: '3000694',
         subProducto: '',
-        actividad: 'Control de calidad',
+        actividad: 'Control y mejora continua',
         unidadMedida: 'Documento',
         metaReprog: 24,
         metaProg: 24,
-        meses: [2,2,2,2,2,2,2,0,0,0,0,0],
-        totalMeta: 14,
-        avancePct: 58.33,
+        meses: [Math.round(2*f),Math.round(2*f),Math.round(2*f),Math.round(2*f),
+                Math.round(2*f),Math.round(2*f),Math.round(2*f),0,0,0,0,0],
+        totalMeta: Math.round(24*f*0.6),
+        avancePct: Math.round(f*80*100)/100,
       },
     ];
     var totMetaProg = 0, totTotal = 0, totMeses = [0,0,0,0,0,0,0,0,0,0,0,0];
@@ -79,23 +96,28 @@ MOCK_SCRIPT = """
     };
   }
 
+  function makeRunner(){
+    var _success = function(){};
+    var _failure = function(){};
+    var runner = {
+      withSuccessHandler: function(fn){ _success = fn; return runner; },
+      withFailureHandler: function(fn){ _failure = fn; return runner; },
+      getProgramas: function(){
+        var cb = _success;
+        setTimeout(function(){ cb(MOCK_PROGRAMAS); }, 200);
+      },
+      getDatosHoja: function(hojaName){
+        var cb = _success;
+        var delay = 200 + Math.random()*300;
+        setTimeout(function(){ cb(mockDatos(hojaName)); }, delay);
+      },
+    };
+    return runner;
+  }
+
   window.google = {
     script: {
-      run: (function(){
-        var _success = function(){};
-        var _failure = function(){};
-        var obj = {
-          withSuccessHandler: function(fn){ _success = fn; return obj; },
-          withFailureHandler: function(fn){ _failure = fn; return obj; },
-          getProgramas: function(){
-            setTimeout(function(){ _success(MOCK_PROGRAMAS); }, 200);
-          },
-          getDatosHoja: function(hojaName){
-            setTimeout(function(){ _success(mockDatos(hojaName)); }, 300);
-          },
-        };
-        return obj;
-      })(),
+      get run(){ return makeRunner(); }
     }
   };
 })();
