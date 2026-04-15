@@ -1,0 +1,138 @@
+/**
+ * SISTEMA PROGRAMA PRESUPUESTAL
+ * Subir este archivo al editor de Apps Script de tu Google Sheet.
+ * Implementar → Nueva implementacion → Aplicacion web
+ * Ejecutar como: Yo | Acceso: Cualquier persona
+ */
+
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('Sistema Programa Presupuestal')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/**
+ * Devuelve la lista de todas las hojas que empiezan con "PP".
+ * Llamado al inicio: google.script.run.getProgramas()
+ */
+function getProgramas() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var hojas = ss.getSheets();
+  var lista = [];
+
+  hojas
+    .filter(function(s) { return s.getName().indexOf('PP ') === 0; })
+    .forEach(function(sheet, i) {
+      var nombre = sheet.getName();
+      var titulo = String(sheet.getRange('A1').getValue() || '').trim();
+      lista.push({
+        id:     'p' + (i + 1),
+        codigo: nombre,
+        titulo: titulo || nombre,
+        hoja:   nombre,
+      });
+    });
+
+  return lista;
+}
+
+/**
+ * Lee una hoja PP y devuelve metas + totales.
+ * Llamado con: google.script.run.getDatosHoja(hojaName)
+ * @param {string} hojaName - Nombre exacto de la pestaña, ej. "PP 0104"
+ */
+function getDatosHoja(hojaName) {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = hojaName
+    ? ss.getSheetByName(hojaName)
+    : ss.getSheets().filter(function(s) { return s.getName().indexOf('PP ') === 0; })[0];
+
+  if (!sheet) {
+    return { error: 'No se encontro la hoja "' + hojaName + '". Verifica el nombre de la pestaña.' };
+  }
+
+  var titulo  = String(sheet.getRange('A1').getValue() || '').trim();
+  var lastRow = sheet.getLastRow();
+
+  if (lastRow < 7) {
+    return { titulo: titulo || sheet.getName(), metas: [], totales: null };
+  }
+
+  var numRows = lastRow - 6;
+  var valores = sheet.getRange(7, 1, numRows, 20).getValues();
+
+  var metas             = [];
+  var currentProducto   = '';
+  var currentCodigo     = '';
+  var totMetaReprog = 0, totMetaProg = 0, totTotal = 0;
+  var totMeses = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+  for (var i = 0; i < valores.length; i++) {
+    var row  = valores[i];
+    var colA = String(row[0] || '').trim();
+
+    if (colA) {
+      var partes      = colA.split(' - ');
+      currentCodigo   = partes[0].trim();
+      currentProducto = colA;
+    }
+
+    var unidadMedida = String(row[3] || '').trim();
+    var actividad    = String(row[2] || '').trim();
+
+    if (!unidadMedida) continue;
+    if (colA.toUpperCase().indexOf('TOTAL') !== -1) continue;
+
+    var metaReprog = Number(row[4])  || 0;
+    var metaProg   = Number(row[5])  || 0;
+    var meses = [
+      Number(row[6])  || 0,
+      Number(row[7])  || 0,
+      Number(row[8])  || 0,
+      Number(row[9])  || 0,
+      Number(row[10]) || 0,
+      Number(row[11]) || 0,
+      Number(row[12]) || 0,
+      Number(row[13]) || 0,
+      Number(row[14]) || 0,
+      Number(row[15]) || 0,
+      Number(row[16]) || 0,
+      Number(row[17]) || 0,
+    ];
+    var totalMeta  = Number(row[18]) || 0;
+    var avancePct  = Number(row[19]) || 0;
+
+    totMetaReprog += metaReprog;
+    totMetaProg   += metaProg;
+    for (var m = 0; m < 12; m++) totMeses[m] += meses[m];
+    totTotal      += totalMeta;
+
+    metas.push({
+      producto:       currentProducto,
+      codigoProducto: currentCodigo,
+      subProducto:    String(row[1] || '').trim(),
+      actividad:      actividad,
+      unidadMedida:   unidadMedida,
+      metaReprog:     metaReprog,
+      metaProg:       metaProg,
+      meses:          meses,
+      totalMeta:      totalMeta,
+      avancePct:      avancePct,
+    });
+  }
+
+  var totAvance = totMetaProg > 0 ? (totTotal / totMetaProg) * 100 : 0;
+
+  return {
+    titulo:  titulo || sheet.getName(),
+    hoja:    sheet.getName(),
+    metas:   metas,
+    totales: {
+      metaReprog: totMetaReprog,
+      metaProg:   totMetaProg,
+      meses:      totMeses,
+      totalMeta:  totTotal,
+      avancePct:  Math.round(totAvance * 100) / 100,
+    }
+  };
+}
